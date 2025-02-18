@@ -1,2 +1,4 @@
 files/
 myvenv/
+.env
+checking_files
