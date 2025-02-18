@@ -124,7 +124,7 @@ def proccessTransaction(data, account_id):
       date = item['transaction']['date']
       description = item['transaction']['description']
       ammount = item['transaction']['amount']
-      count = item['count']
+      count = item['count'] 
       
       
       checkMovementDb(date, account_id, description, ammount, count)

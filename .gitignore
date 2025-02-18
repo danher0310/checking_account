@@ -2,3 +2,6 @@ files/
 myvenv/
 .env
 checking_files/
+*.csv
+*.xlsx
+*.xls
