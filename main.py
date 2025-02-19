@@ -149,8 +149,10 @@ def ReadCheckingOrSaving(data , account_id):
       elif row[3].lower() == 'debit':
         amount = float(row[2]) * -1
       parser_data.append([date, description, amount])
+      
+      proccessTransaction(parser_data, account_id)
         
-    print(parser_data)
+    
   except Exception as e:
     print("Se produjo un error:")
     traceback.print_exc()
@@ -207,13 +209,13 @@ def check_folder(path):
           account_id = checkAccount(account)
           print(account)
           print(account_id)
-          # with open(path_file, mode='r') as movement_file:
-          #     reader = csv.reader(movement_file)
-          #     for row in reader:
-          #       data.append(row)
-          #     del data[0]
+          with open(path_file, mode='r') as movement_file:
+              reader = csv.reader(movement_file)
+              for row in reader:
+                data.append(row)
+              del data[0]
               
-          #     ReadCheckingOrSaving(data , 15)
+              ReadCheckingOrSaving(data , account_id)
         
           
           
