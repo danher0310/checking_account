@@ -137,6 +137,24 @@ def proccessTransaction(data, account_id):
     print("Se produjo un error:")
     traceback.print_exc()
 
+
+def ReadCheckingOrSaving(data , account_id):
+  try:
+    parser_data = []
+    for row in data:
+      date =convertDate(row[0])
+      description = row[10]
+      if row[3].lower() == 'credit':
+        amount = float(row[2])
+      elif row[3].lower() == 'debit':
+        amount = float(row[2]) * -1
+      parser_data.append([date, description, amount])
+        
+    print(parser_data)
+  except Exception as e:
+    print("Se produjo un error:")
+    traceback.print_exc()
+  
 def redDataCaixa(data , account_id):
   try:
     parser_data = []
@@ -150,34 +168,7 @@ def redDataCaixa(data , account_id):
       
     proccessTransaction(parser_data, account_id)
       
-    #   key = (description, amount, date)
-    #   transaction[key]['count'] += 1
-    #   transaction[key]['amount'] = amount 
-    #   transaction[key]['date'] = date
-      
-      
-      
-    # for key, value in transaction.items():
-    #   transaction_ordered ={
-    #     'transaction':{
-    #       'description': key[0],
-    #       'amount': key[1], 
-    #       'date': key[2],
-    #     },
-    #     'count': value['count'],
-    #   }
-    #   parser_data.append(transaction_ordered)
-      
-      
-      
-    # for item in parser_data:
-    #   print(item)
-    #   date = item['transaction']['date']
-    #   description = item['transaction']['description']
-    #   ammount = item['transaction']['amount']
-    #   count = item['count']
-      
-    #   checkMovementDb(date, acccount_id, description, ammount, count)
+   
     
     
   except Exception as e:
@@ -195,27 +186,28 @@ def check_folder(path):
           account_id = checkAccount(account)
           print(account_id)
           
-          df = pd.read_excel(path_file,engine='openpyxl')
-          originalname = os.path.splitext(path_file)[0]
+          # df = pd.read_excel(path_file,engine='openpyxl')
+          # originalname = os.path.splitext(path_file)[0]
           
-          csvName = f"{originalname}.csv"  
-          df.to_csv(csvName, index=False)
-          with open(csvName, mode='r') as movement_file:
-            reader = csv.reader(movement_file)
-            for row in reader:                
-              data.append(row)
-          del data[0:3]
+          # csvName = f"{originalname}.csv"  
+          # df.to_csv(csvName, index=False)
+          # with open(csvName, mode='r') as movement_file:
+          #   reader = csv.reader(movement_file)
+          #   for row in reader:                
+          #     data.append(row)
+          # del data[0:3]
           
-          #print(data)
-          redDataCaixa(data, account_id)
-          os.remove(csvName)
+          # #print(data)
+          # redDataCaixa(data, account_id)
+          # os.remove(csvName)
           #os.remove(path_file)
-      # elif(os.path.isfile(path_file) and path_file.endswith(('.csv', '.CSV'))):
-      #   with open(path_file, mode='r') as movement_file:
-      #       reader = csv.reader(movement_file)
-      #       for row in reader:
-      #         data.append(row)
-      #       print(data)
+      elif(os.path.isfile(path_file) and path_file.endswith(('.csv', '.CSV'))):
+        with open(path_file, mode='r') as movement_file:
+            reader = csv.reader(movement_file)
+            for row in reader:
+              data.append(row)
+            del data[0]
+            ReadCheckingOrSaving(data , 15)
         
           
           
