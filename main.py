@@ -184,7 +184,6 @@ def check_folder(path):
         if "movimientos" in file.lower():
           account = "CAIXA"
           account_id = checkAccount(account)
-          print(account_id)
           
           # df = pd.read_excel(path_file,engine='openpyxl')
           # originalname = os.path.splitext(path_file)[0]
@@ -202,12 +201,19 @@ def check_folder(path):
           # os.remove(csvName)
           #os.remove(path_file)
       elif(os.path.isfile(path_file) and path_file.endswith(('.csv', '.CSV'))):
-        with open(path_file, mode='r') as movement_file:
-            reader = csv.reader(movement_file)
-            for row in reader:
-              data.append(row)
-            del data[0]
-            ReadCheckingOrSaving(data , 15)
+        if "checking" in file.lower()or 'saving' in file.lower():
+          account = os.path.splitext(file)[0].upper()
+          account = account.replace(" ", "%")
+          account_id = checkAccount(account)
+          print(account)
+          print(account_id)
+          # with open(path_file, mode='r') as movement_file:
+          #     reader = csv.reader(movement_file)
+          #     for row in reader:
+          #       data.append(row)
+          #     del data[0]
+              
+          #     ReadCheckingOrSaving(data , 15)
         
           
           
