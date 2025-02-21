@@ -7,7 +7,7 @@ import mysql.connector
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from collections import defaultdict
-
+import time
 load_dotenv() 
 def convertDate(date):
   date_obj =datetime.strptime(date, '%m/%d/%Y') 
@@ -33,8 +33,8 @@ def checkAccount(card):
     
     mydb = connectionDb()
     myCursor = mydb.cursor()
-    sqlScript = f"SELECT id FROM cards WHERE name like '%{card}%';"
-    myCursor.execute(sqlScript)
+    sqlScript = "SELECT id FROM cards WHERE name LIKE %s;"
+    myCursor.execute(sqlScript, (f"%{card}%",))
     result = myCursor.fetchone()
     if result == None:
       return False
@@ -44,37 +44,63 @@ def checkAccount(card):
     return('An error occurred checking the cards')
   
   
-def registerTransaction(date, account_id, description, ammount):   
+def registerTransaction(rows_to_insert):   
   
   
   
   try:
     mydb = connectionDb()
     myCursor = mydb.cursor()
-    myCursor.execute(f'INSERT INTO movement (card_id, payment_date, payment_description, payment_ammount) Values({account_id}, "{date}", "{description}", {ammount})')
+    query = '''
+            INSERT INTO movement (card_id, payment_date, payment_description, payment_ammount)
+            VALUES (%s, %s, %s, %s)
+        '''
+    myCursor.executemany(query, rows_to_insert)
     mydb.commit()
     mydb.close()
   except:
     return('An error occurred registering movement of ther cards')
     
 
-def checkMovementDb(date, account_id, description, ammount, count):
+def checkMovementDb(date, account_id, description, amount, count):
+  
   
   try: 
     
     mydb = connectionDb()
     myCursor = mydb.cursor()   
     
-    myCursor.execute(f'SELECT count(*) FROM movement WHERE card_id = {account_id} and  payment_date = "{date}" and payment_description = "{description}" and payment_ammount = {ammount}')      
-    actual_count = myCursor.fetchone()[0] 
+    query = '''
+            SELECT COUNT(*) 
+            FROM movement 
+            WHERE card_id = %s AND payment_date = %s AND payment_description = %s AND payment_ammount = %s
+        '''
+    myCursor.execute(query, (account_id, date, description, amount))
+    actual_count = myCursor.fetchone()[0]
+      
+    
     myCursor.close()    
     if actual_count < count:
         # Calcular cuántas transacciones faltan
       missing_count = count - actual_count
+      rows_to_insert = [
+        (account_id, date, description, amount) for _ in range(missing_count)
+      ]
+      
+     
+
+      # Inserción masiva
+      # query_insert = '''
+      #     INSERT INTO movement (card_id, payment_date, payment_description, payment_ammount)
+      #     VALUES (%s, %s, %s, %s)
+      # '''
+      # myCursor.executemany(query_insert, rows_to_insert)
+      # mydb.commit()
+      # mydb.close()
       
       
-      for _ in range(missing_count):
-        registerTransaction(date, account_id, description, ammount)
+      # for _ in range(missing_count):
+      registerTransaction( rows_to_insert)
        
         
     
@@ -88,6 +114,7 @@ def checkMovementDb(date, account_id, description, ammount, count):
 def proccessTransaction(data, account_id):
   parser_data = []
   transaction = defaultdict(lambda: {'count': 0, 'amount': 0, 'date': None})
+  
   
   
   try:
@@ -119,12 +146,16 @@ def proccessTransaction(data, account_id):
     
     
     
-    for item in parser_data:          
+    for item in parser_data:   
+     
+           
       
       date = item['transaction']['date']
       description = item['transaction']['description']
       ammount = item['transaction']['amount']
-      count = item['count'] 
+      count = item['count']     
+      
+      
       
       
       checkMovementDb(date, account_id, description, ammount, count)
@@ -150,7 +181,9 @@ def ReadCheckingOrSaving(data , account_id):
         amount = float(row[2]) * -1
       parser_data.append([date, description, amount])
       
-      proccessTransaction(parser_data, account_id)
+    
+      
+    proccessTransaction(parser_data, account_id)
         
     
   except Exception as e:
@@ -187,7 +220,6 @@ def check_folder(path):
           account = "CAIXA"
           #account_id = checkAccount(account)
           
-          
           df = pd.read_excel(path_file,engine='openpyxl')
           originalname = os.path.splitext(path_file)[0]
           
@@ -197,26 +229,30 @@ def check_folder(path):
             reader = csv.reader(movement_file)
             for row in reader:                
               data.append(row)
-
-            print(data[0][1][0])
-          # del data[0:3]
+              
+          # name = data[0][1].split(" ")[0]
+          # account = f"{account} {name.upper()}"
+          # account_id = checkAccount(account)
+          # print(account)
+          del data[0:3]
           
-          # #print(data)
-          # redDataCaixa(data, account_id)
-          # os.remove(csvName)
-          #os.remove(path_file)
+          #print(data)
+          redDataCaixa(data, account_id)
+          os.remove(csvName)
+          os.remove(path_file)
       elif(os.path.isfile(path_file) and path_file.endswith(('.csv', '.CSV'))):
         if "checking" in file.lower()or 'saving' in file.lower():
           account = os.path.splitext(file)[0].upper()
           account = account.replace(" ", "%")
           #account_id = checkAccount(account)
           print(account)
-          #print(account_id)
-          # with open(path_file, mode='r') as movement_file:
-          #     reader = csv.reader(movement_file)
-          #     for row in reader:
-          #       data.append(row)
-          #     del data[0]
+          print(account_id)
+          with open(path_file, mode='r') as movement_file:
+              reader = csv.reader(movement_file)
+              for row in reader:
+                data.append(row)
+              del data[0]
+              
               
           #     ReadCheckingOrSaving(data , account_id)
         
