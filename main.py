@@ -185,17 +185,20 @@ def check_folder(path):
       if os.path.isfile(path_file) and path_file.endswith(('.xls', '.XLS', 'XLSX', 'xlsx')):
         if "movimientos" in file.lower():
           account = "CAIXA"
-          account_id = checkAccount(account)
+          #account_id = checkAccount(account)
           
-          # df = pd.read_excel(path_file,engine='openpyxl')
-          # originalname = os.path.splitext(path_file)[0]
           
-          # csvName = f"{originalname}.csv"  
-          # df.to_csv(csvName, index=False)
-          # with open(csvName, mode='r') as movement_file:
-          #   reader = csv.reader(movement_file)
-          #   for row in reader:                
-          #     data.append(row)
+          df = pd.read_excel(path_file,engine='openpyxl')
+          originalname = os.path.splitext(path_file)[0]
+          
+          csvName = f"{originalname}.csv"  
+          df.to_csv(csvName, index=False)
+          with open(csvName, mode='r') as movement_file:
+            reader = csv.reader(movement_file)
+            for row in reader:                
+              data.append(row)
+
+            print(data[0][1][0])
           # del data[0:3]
           
           # #print(data)
@@ -206,16 +209,16 @@ def check_folder(path):
         if "checking" in file.lower()or 'saving' in file.lower():
           account = os.path.splitext(file)[0].upper()
           account = account.replace(" ", "%")
-          account_id = checkAccount(account)
+          #account_id = checkAccount(account)
           print(account)
-          print(account_id)
-          with open(path_file, mode='r') as movement_file:
-              reader = csv.reader(movement_file)
-              for row in reader:
-                data.append(row)
-              del data[0]
+          #print(account_id)
+          # with open(path_file, mode='r') as movement_file:
+          #     reader = csv.reader(movement_file)
+          #     for row in reader:
+          #       data.append(row)
+          #     del data[0]
               
-              ReadCheckingOrSaving(data , account_id)
+          #     ReadCheckingOrSaving(data , account_id)
         
           
           
