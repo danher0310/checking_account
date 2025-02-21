@@ -8,6 +8,15 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from collections import defaultdict
 import time
+from concurrent.futures import ThreadPoolExecutor
+from collections import defaultdict
+import traceback
+
+
+
+
+
+
 load_dotenv() 
 def convertDate(date):
   date_obj =datetime.strptime(date, '%m/%d/%Y') 
@@ -86,7 +95,7 @@ def checkMovementDb(date, account_id, description, amount, count):
       rows_to_insert = [
         (account_id, date, description, amount) for _ in range(missing_count)
       ]
-      
+      registerTransaction( rows_to_insert)
      
 
       # Inserción masiva
@@ -100,7 +109,7 @@ def checkMovementDb(date, account_id, description, amount, count):
       
       
       # for _ in range(missing_count):
-      registerTransaction( rows_to_insert)
+       
        
         
     
@@ -143,17 +152,22 @@ def proccessTransaction(data, account_id):
       }
       parser_data.append(transaction_ordered)
       
-    
-    
-    
-    for item in parser_data:   
-     
-           
-      
-      date = item['transaction']['date']
-      description = item['transaction']['description']
-      ammount = item['transaction']['amount']
-      count = item['count']     
+      #test
+      with ThreadPoolExecutor() as executor:
+        futures = []
+      #---------------------------------------------------------------- 
+        for item in parser_data:  
+        
+          date = item['transaction']['date']
+          description = item['transaction']['description']
+          ammount = item['transaction']['amount']
+          count = item['count']  
+          
+          # Enviar cada consulta a un hilo
+          futures.append(executor.submit(checkMovementDb, date, account_id, description, amount, count))
+          for future in futures:
+            future.result()
+   
       
       
       
