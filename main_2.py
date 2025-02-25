@@ -81,7 +81,7 @@ def checkMovementDb(date, account_id, description, amount, count):
         '''
     myCursor.execute(query, (account_id, date, description, amount))
     actual_count = myCursor.fetchone()[0] 
-    print(actual_count)
+    
     myCursor.close()    
     
     #if the result  < of the variable
@@ -91,7 +91,7 @@ def checkMovementDb(date, account_id, description, amount, count):
       rows_to_insert = [
         (account_id, date, description, amount) for _ in range(missing_count)
       ]
-      #registerTransaction( rows_to_insert)
+      registerTransaction( rows_to_insert)
     else:
       return False
   except:
@@ -99,6 +99,46 @@ def checkMovementDb(date, account_id, description, amount, count):
   
   
 #funtion to order all transactions before checking the database and compare
+def testCheckTransaction(account_id):
+  print("Checking transaction on the database")
+  print(account_id)
+  try: 
+    #check the transaction and the times of the repeat of the transaction on the database.
+    mydb = connectionDb()
+    myCursor = mydb.cursor()   
+    
+    query = '''
+            SELECT payment_date, payment_description, payment_amount FROM movement WHERE card_id = %s; 
+        '''
+    myCursor.execute(query, (account_id, ))
+    result = myCursor.fetchall()
+    print(result)
+    myCursor.close()  
+    return result
+    
+    
+  except:
+    return('An error occurred checking movement of the cards') 
+def testProcessTransaction(data, account_id):
+  print(data)
+  print(account_id)
+  
+  dataFromDB = testCheckTransaction(account_id)
+  print(dataFromDB)
+  print(len(dataFromDB))
+  
+  
+  # datatoDB = [
+  #   [account_id] + row 
+  #   for row in data 
+  #   if row not in dataFromDB
+  # ]
+  # #registerTransaction(datatoDB)
+  # #print(datatoDB)
+  # print(len(datatoDB))
+  
+  
+  
 def processTransaction(data, account_id):
   parser_data = []
   #create a dictionary with a count variable to check the transaction times existing in the file
@@ -137,7 +177,7 @@ def processTransaction(data, account_id):
       amount = item['transaction']['amount']
       count = item['count']     
       
-      checkMovementDb(date, account_id, description, amount, count)
+      #checkMovementDb(date, account_id, description, amount, count)
     
     
   except Exception as e:
@@ -160,8 +200,12 @@ def ReadCheckingOrSaving(data , account_id):
       elif row[3].lower() == 'debit':
         amount = float(row[2]) * -1
       parser_data.append([date, description, amount])
+    
+    
       
-    processTransaction(parser_data, account_id)
+    testProcessTransaction(parser_data, account_id)
+      
+    #processTransaction(parser_data, account_id)
         
   except Exception as e:
     print("An error occurred:")
@@ -179,8 +223,8 @@ def redDataCaixa(data , account_id):
       amount = row[3]
       parser_data.append([date, description, amount])
     
-     
-    processTransaction(parser_data, account_id)
+    testProcessTransaction(parser_data, account_id)
+    #processTransaction(parser_data, account_id)
       
    
   except Exception as e:
