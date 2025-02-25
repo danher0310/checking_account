@@ -17,6 +17,10 @@ def convertDate(date):
   date_obj =datetime.strptime(date, '%m/%d/%Y').date()
   return date_obj 
 
+def converDateToWise(date):
+  date = date.split(" ")[0]
+  date_obj = datetime.strptime(date, '%Y-%m-%d').date()
+  return date_obj
 
 #Function to connect to the database
 def connectionDb():  
@@ -68,41 +72,9 @@ def registerTransaction(rows_to_insert):
   
   
 #funtion to check the transaction on the database (I should to improve performance)
-def checkMovementDb(date, account_id, description, amount, count): 
+def checkMovementDb(account_id): 
   try: 
-    #check the transaction and the times of the repeat of the transaction on the database.
-    mydb = connectionDb()
-    myCursor = mydb.cursor()   
-    
-    query = '''
-            SELECT COUNT(id) 
-            FROM movement 
-            WHERE card_id = %s AND payment_date = %s AND payment_description = %s AND payment_amount = %s
-        '''
-    myCursor.execute(query, (account_id, date, description, amount))
-    actual_count = myCursor.fetchone()[0] 
-    
-    myCursor.close()    
-    
-    #if the result  < of the variable
-    if actual_count < count:
-      # Check how much the transaction are repeat 
-      missing_count = count - actual_count
-      rows_to_insert = [
-        (account_id, date, description, amount) for _ in range(missing_count)
-      ]
-      registerTransaction( rows_to_insert)
-    else:
-      return False
-  except:
-    return('An error occurred checking movement of the cards')
-  
-  
-#funtion to order all transactions before checking the database and compare
-def testCheckTransaction(account_id):
-  
-  try: 
-    #check the transaction and the times of the repeat of the transaction on the database.
+     #check the transaction and the times of the repeat of the transaction on the database.
     mydb = connectionDb()
     myCursor = mydb.cursor()      
     query = '''
@@ -113,68 +85,32 @@ def testCheckTransaction(account_id):
     
     myCursor.close()  
     return result
-    
   except:
-    return('An error occurred checking movement of the cards') 
-def testProcessTransaction(data, account_id):
-  print(account_id)
-  
-  #Get the transaction from the database and convert the result to array 
-  data_from_DB = testCheckTransaction(account_id)
-  data_from_DB_normalized =[
-    [row[0], row[1], float(row[2])] for row in data_from_DB
-  ]  
-  #compare the data from the file and the database
-  datatoDB = [
-    [account_id] + row 
-    for row in data 
-    if row not in data_from_DB_normalized
-  ]
-  #register the transactions on the database if the transactions is not in the database
-  registerTransaction(datatoDB)  
+    return('An error occurred checking movement of the cards')
   
   
+#funtion to order all transactions before checking the database and compare
   
   
 def processTransaction(data, account_id):
-  parser_data = []
-  #create a dictionary with a count variable to check the transaction times existing in the file
-  transaction = defaultdict(lambda: {'count': 0, 'amount': 0, 'date': None})
+  
   
   try:
-    #loop to check the transaction if is repeatable on the file if exists we +1 on the count variable
-    for row in data:
-      
-      date = row[0]
-      description = row[1]
-      amount = row[2]
-      
-      key = (description, amount, date)
-      transaction[key]['count'] += 1
-      transaction[key]['amount'] = amount 
-      transaction[key]['date'] = date
-      
-    #Order the dictionary by transaction
-    for key, value in transaction.items():
-      transaction_ordered ={
-        'transaction':{
-          'description': key[0],
-          'amount': key[1], 
-          'date': key[2],
-        },
-        'count': value['count'],
-      }
-      parser_data.append(transaction_ordered)
-      
     
-    for item in parser_data:   
-     #loop to check each transaction on the database
-      date = item['transaction']['date']
-      description = item['transaction']['description']
-      amount = item['transaction']['amount']
-      count = item['count']     
-      
-      #checkMovementDb(date, account_id, description, amount, count)
+  
+    #Get the transaction from the database and convert the result to array 
+    data_from_DB = checkMovementDb(account_id)
+    data_from_DB_normalized =[
+      [row[0], row[1], float(row[2])] for row in data_from_DB
+    ]  
+    #compare the data from the file and the database
+    datatoDB = [
+      [account_id] + row 
+      for row in data 
+      if row not in data_from_DB_normalized
+    ]
+    #register the transactions on the database if the transactions is not in the database
+    registerTransaction(datatoDB)  
     
     
   except Exception as e:
@@ -200,7 +136,7 @@ def ReadCheckingOrSaving(data , account_id):
     
     
       
-    testProcessTransaction(parser_data, account_id)
+    processTransaction(parser_data, account_id)
       
     #processTransaction(parser_data, account_id)
         
@@ -220,13 +156,42 @@ def redDataCaixa(data , account_id):
       amount = float(row[3])
       parser_data.append([date, description, amount])
     
-    testProcessTransaction(parser_data, account_id)
+    
+    processTransaction(parser_data, account_id)
+      
+   
+  except Exception as e:
+    print("An error occurred:")
+    traceback.print_exc() 
+
+def readWise(data, account_id):
+  try:
+    parser_data = []
+    #erxtract date, description, and amount from de data of csv file
+    
+    for row in data:  
+      print(row[3])
+      print (type(row[3]))
+      # date = converDateToWise(row[3])  
+      # if row[16] !="":    
+      #   description = row[16]
+      # else:
+      #   description = row[12]
+      # if row[2].lower() == 'in':        
+      #   amount = float(row[13])
+      # elif row[2].lower() == 'out':
+      #   amount = float(row[13])* -1
+      # print(amount)
+      # parser_data.append([date, description, amount])
+    
+    
     #processTransaction(parser_data, account_id)
       
    
   except Exception as e:
     print("An error occurred:")
     traceback.print_exc() 
+
 
 #function to get ID from File    
 def getBankIdFromFile(file, property=None):
@@ -288,6 +253,17 @@ def check_folder(path):
               
               account_id = getBankIdFromFile(file)              
               ReadCheckingOrSaving(data , account_id)
+        elif "wise" in file.lower():
+          with open(path_file, mode='r') as movement_file:
+              reader = csv.reader(movement_file)
+              for row in reader:
+                data.append(row)
+              
+              del data[0]
+              account_id = getBankIdFromFile(file)
+              readWise(data, account_id)
+          
+          
         
       
   except Exception as e:
