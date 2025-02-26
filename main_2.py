@@ -89,15 +89,11 @@ def checkMovementDb(account_id):
     return('An error occurred checking movement of the cards')
   
   
-#funtion to order all transactions before checking the database and compare
-  
-  
+#funtion to order all transactions before checking the database and compare  
 def processTransaction(data, account_id):
   
   
-  try:
-    
-  
+  try:    
     #Get the transaction from the database and convert the result to array 
     data_from_DB = checkMovementDb(account_id)
     data_from_DB_normalized =[
@@ -134,11 +130,8 @@ def ReadCheckingOrSaving(data , account_id):
         amount = float(row[2]) * -1
       parser_data.append([date, description, amount])
     
-    
-      
     processTransaction(parser_data, account_id)
       
-    #processTransaction(parser_data, account_id)
         
   except Exception as e:
     print("An error occurred:")
@@ -170,23 +163,20 @@ def readWise(data, account_id):
     #erxtract date, description, and amount from de data of csv file
     
     for row in data:  
-      print(row[3])
-      print (type(row[3]))
-      # date = converDateToWise(row[3])  
-      # if row[16] !="":    
-      #   description = row[16]
-      # else:
-      #   description = row[12]
-      # if row[2].lower() == 'in':        
-      #   amount = float(row[13])
-      # elif row[2].lower() == 'out':
-      #   amount = float(row[13])* -1
-      # print(amount)
-      # parser_data.append([date, description, amount])
-    
-    
-    #processTransaction(parser_data, account_id)
       
+      date = converDateToWise(row[3])       
+      if row[16] !="":    
+        description = row[16]
+      else:
+        description = row[12]
+      amount = float(row[13])      
+      if row[2].lower() == 'in':        
+        amount = float(row[13])
+      elif row[2].lower() == 'out':
+        amount = float(row[13])* -1
+      
+      parser_data.append([date, description, amount])
+    processTransaction(parser_data, account_id)      
    
   except Exception as e:
     print("An error occurred:")
@@ -196,11 +186,11 @@ def readWise(data, account_id):
 #function to get ID from File    
 def getBankIdFromFile(file, property=None):
   if property:
-    account = f"{file}%{property.upper()}"    
+    account = f"{file}%{property.upper()}"       
     return getCardIdFromCardName(account)
   else:
-    account = os.path.splitext(file)[0].upper()
-    account = account.replace(" ", "%")
+    account = os.path.splitext(file)[0].upper()    
+    account = account.replace(" ", "%")    
     return getCardIdFromCardName(account)
     
     
@@ -237,10 +227,13 @@ def check_folder(path):
           del data[0:3]
           
           #call the function to order the data 
-          redDataCaixa(data, account_id)
-          #delete the csv file after processing
-          os.remove(csvName)
-          #os.remove(path_file)
+          if account_id != False:
+            redDataCaixa(data, account_id)
+            #delete the csv file after processing
+            os.remove(csvName)
+            os.remove(path_file)
+          else:
+            continue
           
       elif(os.path.isfile(path_file) and path_file.endswith(('.csv', '.CSV'))):
         #process if the file have a checking or saving on the name
@@ -250,9 +243,13 @@ def check_folder(path):
               for row in reader:
                 data.append(row)
               del data[0]
-              
-              account_id = getBankIdFromFile(file)              
-              ReadCheckingOrSaving(data , account_id)
+          account_id = getBankIdFromFile(file)   
+          if account_id != False:           
+            ReadCheckingOrSaving(data , account_id)
+            os.remove(path_file)
+          else:
+            continue
+          
         elif "wise" in file.lower():
           with open(path_file, mode='r') as movement_file:
               reader = csv.reader(movement_file)
@@ -260,12 +257,14 @@ def check_folder(path):
                 data.append(row)
               
               del data[0]
-              account_id = getBankIdFromFile(file)
-              readWise(data, account_id)
+              file = file.split('-')[0]
+          account_id = getBankIdFromFile(file)
+          if account_id != False: 
+            readWise(data, account_id)
+            os.remove(path_file)
+          else:
+            continue
           
-          
-        
-      
   except Exception as e:
     print("We have a error:")
     traceback.print_exc() 
