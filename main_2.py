@@ -22,6 +22,10 @@ def converDateToWise(date):
   date_obj = datetime.strptime(date, '%Y-%m-%d').date()
   return date_obj
 
+def convertDateToPopular(date):
+  date_obj = datetime.strptime(date, '%d/%m/%Y').date()
+  return date_obj
+
 #Function to connect to the database
 def connectionDb():  
   try:
@@ -182,6 +186,34 @@ def readWise(data, account_id):
     print("An error occurred:")
     traceback.print_exc() 
 
+def readPopular(data, account_id):
+  try:
+    # values that need to be ignored in the data
+    ignores_values = ['Fecha Posteo', 'Descripción Corta', 'Monto Transacción', 'No. Referencia', 'No. Serial', 'Descripción']
+    parser_data = []
+    #erxtract date, description, and amount from de data of csv file
+    
+    for row in data: 
+      if len(row) != 0 and  row != ignores_values: 
+        
+        date = convertDateToPopular(row[0])  
+        description = row[5].replace('.00',"").strip()
+        
+        if "débito" in row[1].lower():      
+          amount = float(row[2]) * -1
+        elif "crédito" in row[1].lower():
+          amount = float(row[2])
+        print(description)
+        parser_data.append([date, description, amount])
+        
+      
+    
+    processTransaction(parser_data, account_id)
+  
+  except Exception as e:
+    print("An error occurred:")
+    traceback.print_exc() 
+    
 
 #function to get ID from File    
 def getBankIdFromFile(file, property=None):
@@ -238,7 +270,7 @@ def check_folder(path):
       elif(os.path.isfile(path_file) and path_file.endswith(('.csv', '.CSV'))):
         #process if the file have a checking or saving on the name
         if "checking" in file.lower()or 'saving' in file.lower():
-          with open(path_file, mode='r') as movement_file:
+          with open(path_file, mode='r',encoding='utf-8') as movement_file:
               reader = csv.reader(movement_file)
               for row in reader:
                 data.append(row)
@@ -251,7 +283,7 @@ def check_folder(path):
             continue
           
         elif "wise" in file.lower():
-          with open(path_file, mode='r') as movement_file:
+          with open(path_file, mode='r',encoding='utf-8') as movement_file:
               reader = csv.reader(movement_file)
               for row in reader:
                 data.append(row)
@@ -264,6 +296,17 @@ def check_folder(path):
             os.remove(path_file)
           else:
             continue
+        elif "banco popular" in file.lower():
+          with open(path_file, mode='r', encoding='utf-8') as movement_file:
+              reader = csv.reader(movement_file)
+              for row in reader:
+                data.append(row)
+                   
+          del data[0:9]
+          account = file.replace("Dominicano","").split('.')[0]                   
+          account_id = getBankIdFromFile(account)          
+          readPopular(data, account_id)
+          
           
   except Exception as e:
     print("We have a error:")
